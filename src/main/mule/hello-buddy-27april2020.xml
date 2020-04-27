@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0fa1b7bb-26ae-4853-aabd-aed19aa6a236" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<global-property doc:name="Global Property" doc:id="d8629c56-9894-4656-839e-18330b23c001" name="mule.env" value="DEV" />
+	<configuration-properties doc:name="Configuration properties" doc:id="e602ca52-f11e-4a9e-a140-0dfbcfd118fd" file="Mule-${mule.env}-Application-Config.properties" />
+	<flow name="hello-buddy-27april2020Flow" doc:id="d7e18efa-9013-4153-8b77-df83661e7f48" >
+		<http:listener doc:name="Listener" doc:id="79c46467-3ef1-4a2d-ac70-52fe6e808c2a" path="/hello" config-ref="HTTP_Listener_config"/>
+		<set-payload value="#['Hello ' ++ (message.attributes.queryParams.Name as String default 'HAHa') ++ ' How are you?']" doc:name="Set Payload" doc:id="696f12bb-37bc-425b-ba11-0feb3490ae1d" />
+		<logger level="INFO" doc:name="Logger" doc:id="99b9b6e4-adfe-4e7b-9125-a79876e6429a" />
+	</flow>
+</mule>
