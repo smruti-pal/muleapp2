@@ -35,7 +35,7 @@
 						<username>swapnil_bankar_02April</username>
 						<password>Polymer_1</password>
 						<workers>1</workers>
-						<workType>Micro</workType>					
+						<workerType>Micro</workerType>					
 					</cloudHubDeployment>
 				</configuration>
 			</plugin>
