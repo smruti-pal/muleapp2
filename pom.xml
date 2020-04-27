@@ -32,7 +32,7 @@
 						<objectStoreV2>true</objectStoreV2>
 						<uri>https://anypoint.mulesoft.com</uri>
 						<applicationName>hello-buddy-27april2020</applicationName>
-						<user>swapnil_bankar_02April</user>
+						<userName>swapnil_bankar_02April</userName>
 						<password>Polymer_1</password>
 						<workers>1</workers>
 						<workType>Micro</workType>					
