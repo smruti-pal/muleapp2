@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:compression="http://www.mulesoft.org/schema/mule/compression"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd
+		http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="pfj-digital-fuelprices">
+		<http:listener config-ref="HTTP_Listener_config" path="${http.listener.path}" responseStreamingMode="NEVER">
+			<http:response statusCode="#[vars.statusCode default (attributes.statusCode default 200)]">
+			</http:response>
+			<http:error-response statusCode="#[vars.statusCode default (attributes.statusCode default 500)]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<set-variable value="#[%dw 2.0
+output application/java
+var path = (attributes.requestPath splitBy((&quot;^&quot; ++ p('http.listener.path')) as Regex))[1]
+var acceptEncoding = lower(attributes.headers.'accept-encoding')
+---
+{
+	method: attributes.method,
+	path: path,
+	authToken: attributes.headers.Authorization,
+	caller_id: if (isEmpty(attributes.headers.caller_id)) uuid() else attributes.headers.caller_id,
+	acceptGzip: if (acceptEncoding == 'gzip' or acceptEncoding == 'application/gzip') true else false
+}]" doc:name="Incoming Request" doc:id="33c79da7-2418-48c1-957f-2df1c190814c" variableName="incoming" />
+		<logger level="INFO" doc:name="Incoming Request" doc:id="261a9a9e-a7d7-4f4d-bf4e-10295607147e" message="Request - (#[vars.incoming.caller_id]) ${api.version} #[vars.incoming.method] /#[vars.incoming.path]" />
+		<apikit:router config-ref="pfj-digital-fuelprices-config" />
+		<choice doc:name="Choice" doc:id="6c234e7f-1a64-463d-b58a-30186d2a3365" >
+			<when expression="#[vars.incoming.acceptGzip as Boolean]">
+				<compression:compress doc:name="Compress" doc:id="5310d273-daab-439b-a693-5d57d95d5613" >
+					<compression:compressor >
+						<compression:gzip-compressor />
+					</compression:compressor>
+				</compression:compress>
+			</when>
+		</choice>
+		<logger level="INFO" doc:name="Response" doc:id="d0592055-f2fc-4a5e-a2df-3b85a8625e45" message="Response - (#[vars.incoming.caller_id]) #[vars.incoming.method] /#[vars.incoming.path] - status #[attributes.statusCode default 200]" />
+		<error-handler>
+			<on-error-propagate enableNotifications="false" logException="false" doc:name="HTTP Error Status Code Received" doc:id="1e6df0cc-a4c1-4966-a45e-57a50add4b02" when="#[sizeOf(error..StatusCode default []) &gt; 0]">
+				<set-variable value="#[(error..StatusCode)[0]]" doc:name="Status Code" doc:id="8f64ac76-0f4c-40f8-b1d9-e14c450a64c3" variableName="statusCode"/>
+				<ee:transform doc:name="Error Message Responses.dwl" doc:id="ce36a578-2ca1-4db8-aa1f-320c5b003acc">
+					<ee:message>
+						<ee:set-payload resource="modules/errorMessageResponses.dwl"/>
+					</ee:message>
+					<ee:variables></ee:variables>
+				</ee:transform>
+				<logger level="ERROR" doc:name="Logger" doc:id="743af8fe-96a5-4b72-b5fb-c91fc908d691" message="Error - (#[vars.incoming.caller_id]) status code #[vars.statusCode]"/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="false" logException="true" doc:name="Internal and Unhandled Errors" doc:id="39325919-6b28-40e9-8fda-98c897483245">
+				<set-variable value="#[%dw 2.0
+		output application/java
+		var namespace = error.errorType.namespace
+		var identifier = error.errorType.identifier
+		---
+		if (namespace == 'INPUT' or namespace == 'VALIDATION' or identifier == 'BAD_REQUEST') 400
+		else if (namespace == 'AUTH' and identifier == 'UNAUTHORIZED') 401
+		else if (namespace == 'AUTH' and identifier == 'FORBIDDEN') 403
+		else if (identifier == 'NOT_FOUND') 404
+		else if (identifier == 'METHOD_NOT_ALLOWED') 405
+		else if (identifier == 'NOT_ACCEPTABLE') 406
+		else if (identifier == 'TIMEOUT') 408
+		else if (identifier == 'UNSUPPORTED_MEDIA_TYPE') 415
+		else if (identifier == 'TOO_MANY_REQUESTS') 429
+		else if (identifier == 'NOT_IMPLEMENTED') 501
+		else 500]" doc:name="Status Code" doc:id="39aef6bc-0e3e-4fbb-bdac-6aef9c98b365" variableName="statusCode"/>
+				<ee:transform doc:name="Error Message Responses.dwl" doc:id="6ff0ac6f-aaba-4fd7-b553-b5026933fa53">
+					<ee:message>
+						<ee:set-payload resource="modules/errorMessageResponses.dwl"/>
+					</ee:message>
+					<ee:variables></ee:variables>
+				</ee:transform>
+				<logger level="ERROR" doc:name="Logger" doc:id="244e17b5-31b2-4fc9-9285-bb2768a2a3b5" message="Error - (#[vars.incoming.caller_id]) status code #[vars.statusCode]"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow name="GlobalRequestor" doc:id="adbb4923-27a8-484c-aca2-8cac2973cd30">
+		<logger level="INFO" doc:name="Request Logger" doc:id="7f42a888-1949-478b-b60a-917a9475b2e0" message="Requesting - (#[vars.incoming.caller_id default 'scheduler']) #[vars.request.method] https://#[vars.request.host]/#[vars.request.basePath]/#[vars.request.path]"/>
+		<http:request method="#[vars.request.method]" doc:name="Request" doc:id="57cd4803-1182-4a79-8ccd-d73f9c98d602" config-ref="HTTP_Request_configuration" path="#[vars.request.path]">
+			<http:headers ><![CDATA[#[output application/java
+---
+vars.request.headers default {}
+]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Request Logger" doc:id="735df531-dca1-4656-b515-258588bb4e75" message="Received - (#[vars.incoming.caller_id default 'scheduler']) #[vars.request.method] https://#[vars.request.host]/#[vars.request.basePath]/#[vars.request.path] status code #[attributes.statusCode]" />
+	</sub-flow>
+	<flow name="get:\heartbeat" doc:id="0975dcb0-73ca-40b5-ad43-89192078e33b">
+		<set-payload value="#[%dw 2.0
+output application/json
+---
+{
+	name: p('api.name'),
+	description: p('api.description'),
+	version: p('api.version')
+}]" doc:name="Set Payload" doc:id="efc15b82-a20b-4580-a43d-ef7615a219a3" />
+	</flow>
+</mule>
