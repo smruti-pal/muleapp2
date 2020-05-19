@@ -105,3 +105,4 @@ output application/json
 }]" doc:name="Set Payload" doc:id="efc15b82-a20b-4580-a43d-ef7615a219a3" />
 	</flow>
 </mule>
+</project>
