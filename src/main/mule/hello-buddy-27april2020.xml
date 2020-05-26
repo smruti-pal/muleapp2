@@ -15,3 +15,4 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		<logger level="INFO" doc:name="Logger" doc:id="99b9b6e4-adfe-4e7b-9125-a79876e6429a" />
 	</flow>
 </mule>
+
