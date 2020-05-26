@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+	<http:listener-config name="PFJ_HTTPs_Listener_config" doc:name="HTTP Listener config" doc:id="0cd92859-623d-4e2a-806f-2c4e0e1f5e10">
+		<http:listener-connection host="0.0.0.0" port="${https.private.port}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="${keystore.path}" password="${keystore.password}" keyPassword="${keystore.password}"/>
+			</tls:context>
+
+		</http:listener-connection>
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="c0c3cd54-b1e7-4aad-a8d6-c66c46e3b8f4" file="properties/common-config.properties" />
+	<configuration-properties doc:name="Configuration properties" doc:id="12be451b-554c-4ab4-924b-afe5460019a9" file="properties/${runtimeenv}.properties" />
+	<global-property doc:name="Global Property" doc:id="2c663b44-aab8-4e6c-90af-6d93ea46b02e" name="runtime.env" value="dev" />
+	<api-gateway:autodiscovery apiId="${api.Id}" doc:name="API Autodiscovery" doc:id="52abaa81-9ff5-4ba9-9744-c2bb7c55bfe9" flowRef="pfj-digital-parkingsensor-main" />
+	<db:config name="MsSQL_config" doc:name="Database Config" doc:id="91a9cf26-5d20-41e6-836e-2779879c83b8" >
+		<db:mssql-connection host="${db.mssql.host}" port="${db.mssql.port}" user="${db.mssql.user}" password="${db.parkingsensor.password}" databaseName="${db.mssql.database}" />
+	</db:config>
+		<http:request-config name="Common_api_config" doc:name="HTTP Request configuration" doc:id="c732e453-8280-4d15-93d5-de91faa5c85d" basePath="${https.commonapi.basepath}" >
+		<http:request-connection protocol="HTTPS" host="${https.commonapi.host}" port="${https.commonapi.port}" >
+			<tls:context >
+				<tls:trust-store path="${keystore.path}" password="${keystore.password}" type="jks" insecure="true" />
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+	<apikit:config outboundHeadersMapName="outboundHeadersMapName" httpStatusVarName="httpStatus" doc:name="Router" doc:id="1cc076fa-5f75-47e4-9dd2-2cd17ebb7e48" name="pfj-digital-parkingsensor-config" raml="pfj-digital-parkingsensor.raml" queryParamsStrictValidation="true"/>
+
+</mule>
